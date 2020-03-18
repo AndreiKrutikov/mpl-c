@@ -124,7 +124,8 @@ defaultUseOrIncludeModule: [
     [
       varName: refToName getVar;
       varName.data.getTag VarString = not ["name must be static string" compilerError] when
-    ] [
+    ]
+    [
       string: VarString varName.data.get;
       ("use or include module " string) addLog
 
@@ -138,8 +139,8 @@ defaultUseOrIncludeModule: [
           fr.value asUse processUseModule
         ] if
       ] [
-        TRUE dynamic @processorResult.@findModuleFail set
-        string @processorResult.@errorInfo.@missedModule set
+        TRUE dynamic @processor.@processorResult.@findModuleFail set
+        string @processor.@processorResult.@errorInfo.@missedModule set
         ("module not found: " string) assembleString compilerError
       ] if
     ]
@@ -208,6 +209,18 @@ defaultPrintStack: [
   ] loop
 ];
 
+moduleFullPath: [
+  moduleId:;
+  fullPath: String;
+  moduleId processor.modules2 fieldCount < [moduleId 0 < not] && [
+    module: moduleId processor.modules2 @;
+    (module.path module.name) @fullPath.catMany
+  ] when
+
+  fullPath
+];
+
+
 defaultPrintStackTrace: [
   nodeIndex: indexOfNode copy;
   [
@@ -215,7 +228,7 @@ defaultPrintStackTrace: [
     node.root [
       FALSE
     ] [
-      ("at filename: "   node.position.fileNumber processor.options.fileNames.at
+      ("at filename: "   node.position.moduleId moduleFullPath
         ", token: "      node.position.token
         ", nodeIndex: "  nodeIndex
         ", line: "       node.position.line
@@ -231,18 +244,18 @@ defaultPrintStackTrace: [
 
 findNameInfo: [
   key:;
-  fr: @key @processor.@nameToId.find;
+  fr: @key @processor.@multiParserResult.@names.find;
   fr.success [
     fr.value copy
   ] [
     string: key toString;
-    result: processor.nameToId.getSize;
+    result: processor.multiParserResult.names.getSize;
     [result processor.nameInfos.dataSize =] "Name info data sizes inconsistent!" assert
-    string result @processor.@nameToId.insert
+    string result @processor.@multiParserResult.@names.insert
 
     newNameInfo: NameInfo;
     string @newNameInfo.@name set
-    newNameInfo @processor.@nameInfos.pushBack
+    @newNameInfo move owner @processor.@nameInfos.pushBack
 
     result
   ] if

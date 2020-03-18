@@ -180,32 +180,30 @@ Variable: [{
   DIE: [];
 }];
 
-compilable: [processorResult.success copy];
+compilable: [processor.processorResult.success copy];
 
-callBuiltin:           [multiParserResult @currentNode indexOfNode @processor @processorResult callBuiltinImpl];
-processFuncPtr:        [multiParserResult @currentNode indexOfNode @processor @processorResult processFuncPtrImpl];
-processPre:            [multiParserResult @currentNode indexOfNode @processor @processorResult processPreImpl];
-processCall:           [multiParserResult @currentNode indexOfNode @processor @processorResult processCallImpl];
-processExportFunction: [multiParserResult @currentNode indexOfNode @processor @processorResult processExportFunctionImpl];
-processImportFunction: [multiParserResult @currentNode indexOfNode @processor @processorResult processImportFunctionImpl];
-compareEntriesRec:     [currentMatchingNodeIndex @nestedToCur @curToNested @comparingMessage multiParserResult @currentNode indexOfNode @processor @processorResult compareEntriesRecImpl];
-makeVariableType:      [multiParserResult @currentNode indexOfNode @processor @processorResult makeVariableTypeImpl];
-compilerError:         [makeStringView multiParserResult @currentNode indexOfNode @processor @processorResult compilerErrorImpl];
-generateDebugTypeId:   [multiParserResult @currentNode indexOfNode @processor @processorResult generateDebugTypeIdImpl];
-generateIrTypeId:      [multiParserResult @currentNode indexOfNode @processor @processorResult generateIrTypeIdImpl];
+callBuiltin:           [@currentNode indexOfNode @processor callBuiltinImpl];
+processFuncPtr:        [@currentNode indexOfNode @processor processFuncPtrImpl];
+processPre:            [@currentNode indexOfNode @processor processPreImpl];
+processCall:           [@currentNode indexOfNode @processor processCallImpl];
+processExportFunction: [@currentNode indexOfNode @processor processExportFunctionImpl];
+processImportFunction: [@currentNode indexOfNode @processor processImportFunctionImpl];
+compareEntriesRec:     [currentMatchingNodeIndex @nestedToCur @curToNested @comparingMessage @currentNode indexOfNode @processor compareEntriesRecImpl];
+makeVariableType:      [@currentNode indexOfNode @processor makeVariableTypeImpl];
+compilerError:         [makeStringView @currentNode indexOfNode @processor compilerErrorImpl];
+generateDebugTypeId:   [@currentNode indexOfNode @processor generateDebugTypeIdImpl];
+generateIrTypeId:      [@currentNode indexOfNode @processor generateIrTypeIdImpl];
 getMplType: [
   result: String;
-  @result multiParserResult @currentNode indexOfNode @processor @processorResult getMplTypeImpl
+  @result @currentNode indexOfNode @processor getMplTypeImpl
   @result
 ];
 
 {
   signature: CFunctionSignature Cref;
   compilerPositionInfo: CompilerPositionInfo Cref;
-  multiParserResult: MultiParserResult Cref;
   indexArray: IndexArray Cref;
   processor: Processor Ref;
-  processorResult: ProcessorResult Ref;
   nodeCase: NodeCaseCode;
   parentIndex: 0;
   functionName: StringView Cref;
@@ -214,18 +212,14 @@ getMplType: [
 {
   signature: CFunctionSignature Cref;
   compilerPositionInfo: CompilerPositionInfo Cref;
-  multiParserResult: MultiParserResult Cref;
   processor: Processor Ref;
-  processorResult: ProcessorResult Ref;
   refToVar: RefToVar Cref;
 } () {convention: cdecl;} "createDtorForGlobalVar" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   positionInfo: CompilerPositionInfo Cref;
   name: StringView Cref;
   nodeCase: NodeCaseCode;
@@ -233,48 +227,38 @@ getMplType: [
 } () {convention: cdecl;} "processCallByIndexArrayImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   index: Int32;
 } () {convention: cdecl;} "callBuiltinImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   refToVar: RefToVar Cref;
 } () {convention: cdecl;} "processFuncPtrImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   preAstNodeIndex: Int32;
 } Cond {convention: cdecl;} "processPreImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   name: StringView Cref;
   callAstNodeIndex: Int32;
 } () {convention: cdecl;} "processCallImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   asLambda: Cond;
   name: StringView Cref;
   astNode: AstNode Cref;
@@ -282,22 +266,18 @@ getMplType: [
 } Int32 {convention: cdecl;} "processExportFunctionImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   asCodeRef: Cond;
   name: StringView Cref;
   signature: CFunctionSignature Cref;
 } Int32 {convention: cdecl;} "processImportFunctionImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
 
   comparingMessage: String Ref;
   curToNested: RefToVarTable Ref;
@@ -308,32 +288,25 @@ getMplType: [
 } Cond {convention: cdecl;} "compareEntriesRecImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   refToVar: RefToVar Cref;
 } () {convention: cdecl;} "makeVariableTypeImpl" importFunction
 
 {
   forMatching: Cond;
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   result: RefToVar Ref;
 } () {convention: cdecl;} "popImpl" importFunction
 
 {
   dynamicStoraged: Cond;
-
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
 
   reason: Nat8;
   end: RefToVar Ref;
@@ -342,38 +315,30 @@ getMplType: [
 } () {convention: cdecl;} "makeShadowsImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   message: StringView Cref;
 } () {convention: cdecl;} "compilerErrorImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   refToVar: RefToVar Cref;
 } Int32 {} "generateDebugTypeIdImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   refToVar: RefToVar Cref;
 } Int32 {} "generateIrTypeIdImpl" importFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   resultMPL: String Ref;
   refToVar: RefToVar Cref;
 } () {}  "getMplTypeImpl" importFunction
@@ -413,7 +378,7 @@ getVar: [
 ];
 
 getNameById: [processor.nameBuffer.at makeStringView];
-getMplName:  [getVar.mplNameId processor.nameInfos.at.name makeStringView];
+getMplName:  [getVar.mplNameId processor.nameInfos.at.get.name makeStringView];
 getMplSchema: [getVar.mplSchemaId @processor.@schemaBuffer @];
 
 getDbgType:  [getMplSchema.dbgTypeId getNameById];
@@ -956,7 +921,7 @@ getVirtualValue: [
     ]
     VarCode    [
       info: VarCode    var.data.get;
-      ("\"" info.moduleId processor.options.fileNames.at getStringImplementation "\"/" info.line ":" info.column) @result.catMany
+      ("\"" info.moduleId moduleFullPath getStringImplementation "\"/" info.line ":" info.column) @result.catMany
     ]
     VarBuiltin [VarBuiltin var.data.get @result.cat]
     VarRef     [
@@ -1163,18 +1128,15 @@ getPlainConstantIR: [
 ];
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   refToVar: RefToVar Cref;
 } () {} [
-  processorResult:;
   processor:;
   copy indexOfNode:;
   currentNode:;
-  multiParserResult:;
+  multiParserResult: processor.multiParserResult;
   failProc: @failProcForProcessor;
   refToVar:;
 
@@ -1244,18 +1206,15 @@ getPlainConstantIR: [
 ] "makeVariableTypeImpl" exportFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   refToVar: RefToVar Cref;
 } Int32 {} [
-  processorResult:;
   processor:;
   copy indexOfNode:;
   currentNode:;
-  multiParserResult:;
+  multiParserResult: processor.multiParserResult;
   failProc: @failProcForProcessor;
   refToVar:;
   var: refToVar getVar;
@@ -1275,9 +1234,9 @@ getPlainConstantIR: [
         branch.fields [
           curField:;
           curField.refToVar isVirtual ~ [
-            (curField.nameInfo processor.nameInfos.at.name ":" curField.refToVar getDbgType ";") @resultDBG.catMany
+            (curField.nameInfo processor.nameInfos.at.get.name ":" curField.refToVar getDbgType ";") @resultDBG.catMany
           ] [
-            (curField.nameInfo processor.nameInfos.at.name ".") @resultDBG.catMany
+            (curField.nameInfo processor.nameInfos.at.get.name ".") @resultDBG.catMany
           ] if
         ] each
 
@@ -1291,18 +1250,15 @@ getPlainConstantIR: [
 ] "generateDebugTypeIdImpl" exportFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   refToVar: RefToVar Cref;
 } Int32 {} [
-  processorResult:;
   processor:;
   copy indexOfNode:;
   currentNode:;
-  multiParserResult:;
+  multiParserResult: processor.multiParserResult;
   failProc: @failProcForProcessor;
   refToVar:;
   var: refToVar getVar;
@@ -1355,19 +1311,17 @@ getPlainConstantIR: [
 ] "generateIrTypeIdImpl" exportFunction
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
+
   resultMPL: String Ref;
   refToVar: RefToVar Cref;
 } () {} [
-  processorResult:;
   processor:;
   copy indexOfNode:;
   currentNode:;
-  multiParserResult:;
+  multiParserResult: processor.multiParserResult;
   failProc: @failProcForProcessor;
   resultMPL:;
 
@@ -1395,7 +1349,7 @@ getPlainConstantIR: [
           i branch.fields.dataSize < [
             curField: i branch.fields.at;
             (
-              curField.nameInfo processor.nameInfos.at.name ":"
+              curField.nameInfo processor.nameInfos.at.get.name ":"
               curField.refToVar getMplType ";") @resultMPL.catMany
             i 1 + @i set TRUE
           ] &&

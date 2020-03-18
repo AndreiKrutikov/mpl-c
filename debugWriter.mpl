@@ -129,15 +129,15 @@ addMemberInfo: [
   index: processor.debugInfo.lastId copy;
   processor.debugInfo.lastId 1 + @processor.@debugInfo.@lastId set
 
-  name: field.nameInfo processor.nameInfos.at.name makeStringView;
+  name: field.nameInfo processor.nameInfos.at.get.name makeStringView;
 
   name "" = [
     ("!" index " = !DIDerivedType(tag: DW_TAG_member, name: \"f" fieldNumber "\", scope: !" currentNode.funcDbgIndex
-      ", file: !" currentNode.position.fileNumber processor.debugInfo.fileNameIds.at
+      ", file: !" currentNode.position.moduleId processor.modules2.at .debugInfoId
       ", line: " currentNode.position.line ", baseType: !" debugDeclarationIndex ", size: " fsize 8 * ", offset: " offset 8 * ")") assembleString
   ] [
     ("!" index " = !DIDerivedType(tag: DW_TAG_member, name: \"" name "\", scope: !" currentNode.funcDbgIndex
-      ", file: !" currentNode.position.fileNumber processor.debugInfo.fileNameIds.at
+      ", file: !" currentNode.position.moduleId processor.modules2.at .debugInfoId
       ", line: " currentNode.position.line ", baseType: !" debugDeclarationIndex ", size: " fsize 8 * ", offset: " offset 8 * ")") assembleString
   ] if
 
@@ -202,7 +202,7 @@ getTypeDebugDeclaration: [
             index: processor.debugInfo.lastId copy;
             processor.debugInfo.lastId 1 + @processor.@debugInfo.@lastId set
 
-            ("!" index " = distinct !DICompositeType(tag: DW_TAG_structure_type, file: !" currentNode.position.fileNumber processor.debugInfo.fileNameIds.at
+            ("!" index " = distinct !DICompositeType(tag: DW_TAG_structure_type, file: !" currentNode.position.moduleId processor.modules2.at .debugInfoId
               ", name: \"" refToVar getDebugType "\", line: " currentNode.position.line ", size: " refToVar getStorageSize 0ix cast 0 cast 8 * ", elements: !" index 1 -
               ")") assembleString @processor.@debugInfo.@strings.pushBack
             index currentNode.funcDbgIndex @processor.@debugInfo.@locationIds.insert
@@ -226,8 +226,8 @@ addVariableDebugInfo: [
     [debugDeclarationIndex -1 = ~] "There is no debug declaration for this type!" assert
     index: processor.debugInfo.lastId copy;
     processor.debugInfo.lastId 1 + @processor.@debugInfo.@lastId set
-    ("!" index " = !DILocalVariable(name: \"" nameInfo processor.nameInfos.at.name "\", scope: !" currentNode.funcDbgIndex
-      ", file: !" currentNode.position.fileNumber processor.debugInfo.fileNameIds.at
+    ("!" index " = !DILocalVariable(name: \"" nameInfo processor.nameInfos.at.get.name "\", scope: !" currentNode.funcDbgIndex
+      ", file: !" currentNode.position.moduleId processor.modules2.at .debugInfoId
       ", line: " currentNode.position.line ", type: !" debugDeclarationIndex ")") assembleString @processor.@debugInfo.@strings.pushBack
     index currentNode.funcDbgIndex @processor.@debugInfo.@locationIds.insert
 
@@ -251,8 +251,8 @@ addGlobalVariableDebugInfo: [
 
     index: processor.debugInfo.lastId copy;
     processor.debugInfo.lastId 1 + @processor.@debugInfo.@lastId set
-    ("!" index " = !DIGlobalVariable(name: \"" nameInfo processor.nameInfos.at.name "\", linkageName: \"" refToVar getIrName
-      "\", scope: !" processor.debugInfo.unit ", file: !" currentNode.position.fileNumber processor.debugInfo.fileNameIds.at
+    ("!" index " = !DIGlobalVariable(name: \"" nameInfo processor.nameInfos.at.get.name "\", linkageName: \"" refToVar getIrName
+      "\", scope: !" processor.debugInfo.unit ", file: !" currentNode.position.moduleId processor.modules2.at .debugInfoId
       ", line: " currentNode.position.line ", type: !" debugDeclarationIndex ", isLocal: false, isDefinition: true)") assembleString @processor.@debugInfo.@strings.pushBack
 
     result: index 1 -;
@@ -304,13 +304,11 @@ addDerivedTypeInfo: [
   index
 ];
 
-addFileDebugInfo: [
+addModuleDebugInfo: [
   compileOnce
-  fileName:;
+  fullPath:;
   index: processor.debugInfo.lastId copy;
   processor.debugInfo.lastId 1 + @processor.@debugInfo.@lastId set
-
-  fullPath: (processor.options.mainPath fileName) assembleString;
   onlyPath: onlyFileName: fullPath simplifyPath;;
   ("!" index " = !DIFile(filename: \"" onlyFileName "\", directory: \"" onlyPath makeStringView getStringImplementation "\")" ) assembleString @processor.@debugInfo.@strings.pushBack
   index
@@ -343,8 +341,8 @@ addFuncDebugInfo: [
 
   (
     "!" funcDebugIndex " = distinct !DISubprogram(name: \"" funcImplementation "." funcDebugIndex "\", linkageName: \"" @funcIRName
-    "\", scope: !" position.fileNumber processor.debugInfo.fileNameIds.at
-    ", file: !" position.fileNumber processor.debugInfo.fileNameIds.at ", line: " position.line  ", type: !" subroutineIndex
+    "\", scope: !" position.moduleId processor.modules2.at .debugInfoId
+    ", file: !" position.moduleId processor.modules2.at .debugInfoId ", line: " position.line  ", type: !" subroutineIndex
     ", scopeLine: " position.line ", unit: !" processor.debugInfo.unit ")") assembleString @processor.@debugInfo.@strings.pushBack
 ];
 
@@ -392,7 +390,7 @@ correctUnitInfo: [
   @newDebugInfo move @processor.@debugInfo.@strings.pushBack
   globals: index copy;
 
-  ("!" processor.debugInfo.unit " = distinct !DICompileUnit(language: DW_LANG_C_plus_plus, file: !" lastUnit processor.debugInfo.fileNameIds.at
+  ("!" processor.debugInfo.unit " = distinct !DICompileUnit(language: DW_LANG_C_plus_plus, file: !" lastUnit processor.modules2.at.debugInfoId
     ", producer: \"mpl compiler\", isOptimized: false, runtimeVersion: 2, emissionKind: FullDebug, globals: !" globals ")") assembleString
   processor.debugInfo.unitStringNumber @processor.@debugInfo.@strings.at set
 

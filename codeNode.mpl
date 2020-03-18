@@ -9,7 +9,7 @@ addOverload: [
   copy nameInfo:;
 
   nameInfo 0 < not [
-    currentNameInfo: nameInfo @processor.@nameInfos.at;
+    currentNameInfo: nameInfo @processor.@nameInfos.at.get;
     Overload @currentNameInfo.@stack.pushBack
     currentNameInfo.stack.dataSize 1 -
   ] [
@@ -20,7 +20,7 @@ addOverload: [
 
 getOverloadCount: [
   copy nameInfo:;
-  overloads: nameInfo processor.nameInfos.at.stack;
+  overloads: nameInfo processor.nameInfos.at.get.stack;
   overloads.getSize
 ];
 
@@ -36,7 +36,7 @@ addNameInfoWith: [
   [addNameCase NameCaseFromModule = [refToVar noMatterToCopy] || [refToVar.hostId indexOfNode =] ||] "addNameInfo indexOfNode mismatch!" assert
 
   nameInfo 0 < not [
-    currentNameInfo: nameInfo @processor.@nameInfos.at;
+    currentNameInfo: nameInfo @processor.@nameInfos.at.get;
     currentNameInfo.stack.dataSize 0 = [
       Overload @currentNameInfo.@stack.pushBack # initialisation of nameInfo
     ] when
@@ -110,7 +110,7 @@ addNameInfoFieldNoReg: [
 
 getNameLastIndexInfo: [
   nameInfo:;
-  currentNameInfo: nameInfo @processor.@nameInfos.at;
+  currentNameInfo: nameInfo @processor.@nameInfos.at.get;
 
   result: IndexInfo;
   currentNameInfo.stack.dataSize 1 - @result.@overload set
@@ -122,7 +122,7 @@ deleteNameInfoWithOverload: [
   copy nameInfo:;
   copy overloadId:;
 
-  currentNameInfo: nameInfo @processor.@nameInfos.at;
+  currentNameInfo: nameInfo @processor.@nameInfos.at.get;
   overload: overloadId @currentNameInfo.@stack.at;
 
   @overload.popBack
@@ -138,7 +138,7 @@ deleteNameInfoWithOverload: [
 deleteNameInfo: [
   copy nameInfo:;
 
-  currentNameInfo: nameInfo @processor.@nameInfos.at;
+  currentNameInfo: nameInfo @processor.@nameInfos.at.get;
   currentNameInfo.stack.dataSize 1 - nameInfo deleteNameInfoWithOverload
 ];
 
@@ -1013,13 +1013,13 @@ processLabelNode: [
 
 createVarCode: [
   indexOfAstNode:;
-  astNode: indexOfAstNode multiParserResult.memory.at; #we have info from parser anyway
+  astNode: indexOfAstNode processor.multiParserResult.memory.at.get; #we have info from parser anyway
   codeInfo: CodeNodeInfo;
 
   astNode.column     @codeInfo.@column set
   astNode.line       @codeInfo.@line set
   astNode.offset     @codeInfo.@offset set
-  astNode.fileNumber @codeInfo.@moduleId set
+  astNode.moduleId @codeInfo.@moduleId set
   indexOfAstNode     @codeInfo.@index set
 
   @codeInfo move makeVarCode
@@ -1028,7 +1028,7 @@ createVarCode: [
 processCodeNode: [createVarCode push];
 
 processCallByIndexArray: [
-  multiParserResult @currentNode indexOfNode @processor @processorResult processCallByIndexArrayImpl
+  @currentNode indexOfNode @processor processCallByIndexArrayImpl
 ];
 
 processObjectNode: [
@@ -1046,22 +1046,21 @@ processListNode: [
 ];
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
+  #
   message: StringView Cref;
 } () {convention: cdecl;} [
-  processorResult:;
   processor:;
   copy indexOfNode:;
   currentNode:;
-  multiParserResult:;
+  #multiParserResult: processor.multiParserResult;
   failProc: @failProcForProcessor;
   message:;
   [
     compileOnce
+    processorResult: @processor.@processorResult;
     processorResult.findModuleFail not [processor.depthOfPre 0 =] && [HAS_LOGS] && [
       ("COMPILER ERROR") addLog
       (message) addLog
@@ -1139,7 +1138,7 @@ getNameAs: [
   copy forMatching:;
   matchingCapture:;
   copy nameInfo:;
-  name: nameInfo processor.nameInfos.at.name;
+  name: nameInfo processor.nameInfos.at.get.name;
 
   unknownName: [
     forMatching [
@@ -1159,7 +1158,7 @@ getNameAs: [
   };
 
   nameInfo 0 < not [
-    curNameInfo: nameInfo processor.nameInfos.at;
+    curNameInfo: nameInfo processor.nameInfos.at.get;
     curNameInfo.name name = [
       overload 0 < [curNameInfo.stack.getSize 1 - @overload set] when
 
@@ -1594,7 +1593,7 @@ callCallableStructWithPre: [
         findInside not [
           overload: nameInfo getOverloadCount 1 - overloadShift -;
           overload 0 < [
-            name: nameInfo processor.nameInfos.at.name makeStringView;
+            name: nameInfo processor.nameInfos.at.get.name makeStringView;
             ("cant call overload for name: " name) assembleString compilerError
           ] when
 
@@ -1617,7 +1616,7 @@ callCallableStructWithPre: [
         # no need pre, just call it!
         object regNamesSelf
         refToVar regNamesClosure
-        VarCode codeVar.data.get.index nameInfo processor.nameInfos.at.name makeStringView processCall
+        VarCode codeVar.data.get.index nameInfo processor.nameInfos.at.get.name makeStringView processCall
         refToVar unregNamesClosure
         object unregNamesSelf
       ] if
@@ -1641,7 +1640,7 @@ callCallable: [
   ] [
     var.data.getTag VarCode = [
       object regNamesSelf
-      VarCode var.data.get.index @nameInfo processor.nameInfos.at.name makeStringView processCall
+      VarCode var.data.get.index @nameInfo processor.nameInfos.at.get.name makeStringView processCall
       object unregNamesSelf
     ] [
       var.data.getTag VarImport = [
@@ -1690,7 +1689,7 @@ tryImplicitLambdaCast: [
       declarationNode: declarationIndex processor.nodes.at.get;
       csignature: declarationNode.csignature;
       implName: ("lambda." indexOfNode "." currentNode.lastLambdaName) assembleString;
-      astNode: VarCode refToSrc getVar.data.get.index @multiParserResult.@memory.at;
+      astNode: VarCode refToSrc getVar.data.get.index processor.multiParserResult.memory.at.get;
       implIndex: csignature astNode implName makeStringView TRUE dynamic processExportFunction;
 
       compilable [
@@ -1874,12 +1873,9 @@ copyVarFromParent: [TRUE  FALSE dynamic copyVarImpl];
 
 {
   dynamicStoraged: Cond;
-
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
 
   reason: Nat8;
   end: RefToVar Ref;
@@ -1888,11 +1884,10 @@ copyVarFromParent: [TRUE  FALSE dynamic copyVarImpl];
 } () {convention: cdecl;} [
   copy dynamicStoraged:;
 
-  processorResult:;
   processor:;
   copy indexOfNode:;
   currentNode:;
-  multiParserResult:;
+  multiParserResult: processor.multiParserResult;
   failProc: @failProcForProcessor;
 
   copy reason:;
@@ -1983,12 +1978,12 @@ copyVarFromParent: [TRUE  FALSE dynamic copyVarImpl];
 ] "makeShadowsImpl" exportFunction
 
 makeShadows:        [
-  multiParserResult @currentNode indexOfNode @processor @processorResult
+  @currentNode indexOfNode @processor
   FALSE makeShadowsImpl
 ];
 
 makeShadowsDynamic: [
-  multiParserResult @currentNode indexOfNode @processor @processorResult
+  @currentNode indexOfNode @processor
   TRUE  makeShadowsImpl
 ];
 
@@ -2001,19 +1996,16 @@ addStackUnderflowInfo: [
 
 {
   forMatching: Cond;
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   result: RefToVar Ref;
 } () {convention: cdecl;} [
   copy forMatching:;
-  processorResult:;
   processor:;
   copy indexOfNode:;
   currentNode:;
-  multiParserResult:;
+  multiParserResult: processor.multiParserResult;
   failProc: @failProcForProcessor;
   result:;
 
@@ -2077,13 +2069,13 @@ addStackUnderflowInfo: [
 
 pop:            [
   result: RefToVar;
-  @result multiParserResult @currentNode indexOfNode @processor @processorResult FALSE popImpl
+  @result @currentNode indexOfNode @processor FALSE popImpl
   result
 ];
 
 popForMatching: [
   result: RefToVar;
-  @result multiParserResult @currentNode indexOfNode @processor @processorResult TRUE popImpl
+  @result @currentNode indexOfNode @processor TRUE popImpl
   result
 ];
 
@@ -2205,7 +2197,7 @@ processMember: [
 
   compilable [
     fieldError: [
-      (refToStruct getMplType " has no field " nameInfo processor.nameInfos.at.name) assembleString compilerError
+      (refToStruct getMplType " has no field " nameInfo processor.nameInfos.at.get.name) assembleString compilerError
     ];
 
     refToStruct isSchema [
@@ -2334,7 +2326,7 @@ callInit: [
             fr.success [
               index: fr.index copy;
               fieldRef: index current processStaticAt;
-              initName: processor.initNameInfo processor.nameInfos.at.name makeStringView;
+              initName: processor.initNameInfo processor.nameInfos.at.get.name makeStringView;
               stackSize: currentNode.stack.dataSize copy;
               fieldRef getVar.data.getTag VarCode = [
                 current fieldRef @initName callCallableField
@@ -2385,7 +2377,7 @@ callAssign: [
             fr.success [
               index: fr.index copy;
               fieldRef: index curSrc processStaticAt;
-              assignName: processor.assignNameInfo processor.nameInfos.at.name makeStringView;
+              assignName: processor.assignNameInfo processor.nameInfos.at.get.name makeStringView;
               stackSize: currentNode.stack.dataSize copy;
 
               fieldRef getVar.data.getTag VarCode = [
@@ -2444,7 +2436,7 @@ callDie: [
           fr.success [
             index: fr.index copy;
             fieldRef: index last processStaticAt;
-            dieName: processor.dieNameInfo processor.nameInfos.at.name makeStringView;
+            dieName: processor.dieNameInfo processor.nameInfos.at.get.name makeStringView;
             stackSize: currentNode.stack.dataSize copy;
 
             fieldRef getVar.data.getTag VarCode = [
@@ -2482,25 +2474,21 @@ killStruct: [
 ];
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   indexOfAstNode: Int32;
   astNode: AstNode Cref;
 } () {} [
-  processorResult:;
   processor:;
   copy indexOfNode:;
   currentNode:;
-  multiParserResult:;
   failProc: @failProcForProcessor;
   copy indexOfAstNode:;
   astNode:;
 
   processor.options.verboseIR [
-    ("filename: " currentNode.position.fileNumber processor.options.fileNames.at
+    ("filename: " currentNode.position.moduleId moduleFullPath
       ", line: " currentNode.position.line ", column: " currentNode.position.column ", token: " astNode.token) assembleString createComent
   ] when
 
@@ -2539,7 +2527,7 @@ killStruct: [
 ] "processNodeImpl" exportFunction
 
 processNode: [
-  astNode indexOfAstNode multiParserResult @currentNode indexOfNode @processor @processorResult processNodeImpl
+  astNode indexOfAstNode @currentNode indexOfNode @processor processNodeImpl
 ];
 
 addNamesFromModule: [
@@ -3046,27 +3034,24 @@ makeCompilerPosition: [
   astNode.line       @result.@line set
   astNode.column     @result.@column set
   astNode.offset     @result.@offset set
-  astNode.fileNumber @result.@fileNumber set
+  astNode.moduleId   @result.@moduleId set
   astNode.token      @result.@token set
 
   result
 ];
 
 {
-  processorResult: ProcessorResult Ref;
   processor: Processor Ref;
   indexOfNode: Int32;
   currentNode: CodeNode Ref;
-  multiParserResult: MultiParserResult Cref;
   forcedSignature: CFunctionSignature Cref;
   compilerPositionInfo: CompilerPositionInfo Cref;
   functionName: StringView Cref;
 } () {convention: cdecl;} [
-  processorResult:;
   processor:;
   copy indexOfNode:;
   currentNode:;
-  multiParserResult:;
+  multiParserResult: processor.multiParserResult;
   failProc: @failProcForProcessor;
   forcedSignature:;
   compilerPositionInfo:;
@@ -3216,7 +3201,7 @@ makeCompilerPosition: [
       currentNode.candidatesToDie [
         refToVar:;
         refToVar isAutoStruct [
-          refToVar @processorResult @processor multiParserResult compilerPositionInfo CFunctionSignature createDtorForGlobalVar
+          refToVar @processor compilerPositionInfo CFunctionSignature createDtorForGlobalVar
         ] when
       ] each
     ] [
@@ -3380,7 +3365,7 @@ makeCompilerPosition: [
       current.refToVar.hostId 0 < not [
         current.argCase ArgRef = [
           isRealFunction [
-            ("real function can not have local capture; name=" current.nameInfo processor.nameInfos.at.name "; type=" current.refToVar getMplType) assembleString compilerError
+            ("real function can not have local capture; name=" current.nameInfo processor.nameInfos.at.get.name "; type=" current.refToVar getMplType) assembleString compilerError
           ] when
 
           current.refToVar FALSE addRefArg
@@ -3419,7 +3404,7 @@ makeCompilerPosition: [
     [
       i names.dataSize < [
         nameWithOverload: i names.at;
-        nameWithOverload.nameInfo processor.nameInfos.at.name @s.cat
+        nameWithOverload.nameInfo processor.nameInfos.at.get.name @s.cat
         nameWithOverload.nameOverload 0 > [
           ("(" nameWithOverload.nameOverload ")") @s.catMany
         ] when
@@ -3571,7 +3556,7 @@ makeCompilerPosition: [
   ];
 
   #generate function header
-  noname [processorResult.findModuleFail copy] || [
+  noname [processor.processorResult.findModuleFail copy] || [
     currentNode.nodeCase NodeCaseDtor = [
       "@"          @currentNode.@irName.cat
       functionName @currentNode.@irName.cat
@@ -3691,7 +3676,7 @@ makeCompilerPosition: [
 ] "finalizeCodeNodeImpl" exportFunction
 
 finalizeCodeNode: [
-  compilerPositionInfo forcedSignature multiParserResult @currentNode indexOfNode @processor @processorResult finalizeCodeNodeImpl
+  compilerPositionInfo forcedSignature @currentNode indexOfNode @processor finalizeCodeNodeImpl
 ];
 
 addIndexArrayToProcess: [
@@ -3716,24 +3701,22 @@ nodeHasCode: [
 {
   signature: CFunctionSignature Cref;
   compilerPositionInfo: CompilerPositionInfo Cref;
-  multiParserResult: MultiParserResult Cref;
   indexArray: IndexArray Cref;
   processor: Processor Ref;
-  processorResult: ProcessorResult Ref;
   nodeCase: NodeCaseCode;
   parentIndex: Int32;
   functionName: StringView Cref;
 } Int32 {convention: cdecl;} [
   forcedSignature:;
   compilerPositionInfo:;
-  multiParserResult:;
   indexArray:;
   processor:;
-  processorResult:;
   copy nodeCase:;
   copy parentIndex:;
   functionName:;
   compileOnce
+  multiParserResult: processor.multiParserResult;
+  processorResult: @processor.@processorResult;
 
   addCodeNode
   codeNode: @processor.@nodes.last.get;
@@ -3741,6 +3724,8 @@ nodeHasCode: [
   currentNode: @codeNode;
   indexOfNode: indexOfCodeNode copy;
   failProc: @failProcForProcessor;
+
+  processor.currentlyProcessedModule copy @currentNode.!moduleId2
 
   processor.options.autoRecursion @codeNode.@nodeIsRecursive set
   nodeCase                        @codeNode.@nodeCase set
@@ -3793,7 +3778,7 @@ nodeHasCode: [
         indexOfAstNode: currentNode.unprocessedAstNodes.last copy;
         @currentNode.@unprocessedAstNodes.popBack
 
-        astNode: indexOfAstNode multiParserResult.memory.at;
+        astNode: indexOfAstNode multiParserResult.memory.at.get;
         astNode makeCompilerPosition @currentNode.@position set
 
         processNode

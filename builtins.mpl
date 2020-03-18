@@ -50,7 +50,6 @@ builtins: (
   {name: "isMoved"                 ; impl: @mplBuiltinIsMoved                 ;}
   {name: "importFunction"          ; impl: @mplBuiltinImportFunction          ;}
   {name: "importVariable"          ; impl: @mplBuiltinImportVariable          ;}
-  {name: "includeModule"           ; impl: @mplBuiltinIncludeModule           ;}
   {name: "isConst"                 ; impl: @mplBuiltinIsConst                 ;}
   {name: "isCombined"              ; impl: @mplBuiltinIsCombined              ;}
   {name: "LF"                      ; impl: @mplBuiltinLF                      ;}
@@ -61,7 +60,6 @@ builtins: (
   {name: "manuallyInitVariable"    ; impl: @mplBuiltinManuallyInitVariable    ;}
   {name: "manuallyDestroyVariable" ; impl: @mplBuiltinManuallyDestroyVariable ;}
   {name: "mod"                     ; impl: @mplBuiltinMod                     ;}
-  {name: "module"                  ; impl: @mplBuiltinModule                  ;}
   {name: "move"                    ; impl: @mplBuiltinMove                    ;}
   {name: "moveIf"                  ; impl: @mplBuiltinMoveIf                  ;}
   {name: "neg"                     ; impl: @mplBuiltinNeg                     ;}
@@ -87,7 +85,7 @@ builtins: (
   {name: "TRUE"                    ; impl: @mplBuiltinTrue                    ;}
   {name: "uif"                     ; impl: @mplBuiltinUif                     ;}
   {name: "ucall"                   ; impl: @mplBuiltinUcall                   ;}
-  {name: "useModule"               ; impl: @mplBuiltinUseModule               ;}
+  {name: "use"                     ; impl: @mplBuiltinUse                     ;}
   {name: "virtual"                 ; impl: @mplBuiltinVirtual                 ;}
   {name: "xor"                     ; impl: @mplBuiltinXor                     ;}
 );
@@ -99,14 +97,14 @@ addBuiltin: [
   copy id:;
   name:;
 
-  fr: @name @processor.@nameToId.find;
+  fr: @name @processor.@multiParserResult.@names.find;
   fr.success [
     fr.value copy
   ] [
     s: @name toString;
     result: processor.nameInfos.getSize;
-    s makeNameInfo @processor.@nameInfos.pushBack
-    s result @processor.@nameToId.insert
+    s makeNameInfo move owner @processor.@nameInfos.pushBack
+    s result @processor.@multiParserResult.@names.insert
     result
   ] if
   nameId:;
@@ -128,15 +126,14 @@ initBuiltins: [
   ] times
 ];
 
-{processorResult: ProcessorResult Ref; processor: Processor Ref; indexOfNode: Int32; currentNode: CodeNode Ref; multiParserResult: MultiParserResult Cref; index: Int32;} () {convention: cdecl;} [
-  processorResult:;
+{processor: Processor Ref; indexOfNode: Int32; currentNode: CodeNode Ref;  index: Int32;} () {convention: cdecl;} [
   processor:;
   copy indexOfNode:;
   currentNode:;
-  multiParserResult:;
+  multiParserResult: processor.multiParserResult;
   failProc: @failProcForProcessor;
   copy index:;
 
   builtinFunc: index builtins @ .@impl;
-  multiParserResult @currentNode indexOfNode @processor @processorResult @builtinFunc call
+  @currentNode indexOfNode @processor @builtinFunc call
 ] "callBuiltinImpl" exportFunction

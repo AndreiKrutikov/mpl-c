@@ -1,5 +1,6 @@
 "astOptimizers" module
 "control" useModule
+"Owner" useModule
 
 optimizeLabelsInCurrentNode: [
   node:;
@@ -84,6 +85,7 @@ optimizeLabels: [
 ];
 
 optimizeNamesInCurrentNode: [
+  addNameCallback:;
   node:;
 
   optimizeName: [
@@ -93,6 +95,7 @@ optimizeNamesInCurrentNode: [
       fr.value @nameWithInfo.@nameInfo set
     ] [
       ids.dataSize @nameWithInfo.@nameInfo set
+      nameWithInfo.name nameWithInfo.nameInfo addNameCallback
       nameWithInfo.name ids.dataSize @ids.insert # copy string here
     ] if
   ];
@@ -151,13 +154,13 @@ optimizeNamesInCurrentNode: [
 ];
 
 optimizeNames: [
+  addNameCallback:;
   multiParserResult:;
+  firstUnprocessedNode: dynamic;
   ids: @multiParserResult.@names;
-
-  i: 0 dynamic;
   [
-    i multiParserResult.nodes.dataSize < [
-      currentNodesArray: i @multiParserResult.@nodes.at;
+    firstUnprocessedNode multiParserResult.nodes.getSize < [
+      currentNodesArray: firstUnprocessedNode @multiParserResult.@nodes.at;
 
       unfinishedNodes: IndexArray AsRef Array;
       unfinishedIndexes: Int32 Array;
@@ -170,7 +173,7 @@ optimizeNames: [
         nodes: unfinishedNodes.last.data;
 
         index nodes.dataSize < [
-          index nodes.at @multiParserResult.@memory.at optimizeNamesInCurrentNode # reallocation here
+          index nodes.at @multiParserResult.@memory.at.get @addNameCallback optimizeNamesInCurrentNode # reallocation here
 
           indexAfter: uSize @unfinishedIndexes.at;
           indexAfter 1 + @indexAfter set
@@ -183,7 +186,7 @@ optimizeNames: [
         ] if
       ] loop
 
-      i 1 + @i set TRUE
+      firstUnprocessedNode 1 + @firstUnprocessedNode set TRUE
     ] &&
   ] loop
 ];
@@ -230,3 +233,40 @@ concatParserResults: [
   ] each
 
 ];
+
+appendParserResult: [
+  multiParserResult:;
+  parserResult:;
+  shift: multiParserResult.memory.getSize;
+
+  adjustArray: [
+    indexArray:;
+    @indexArray [
+      cur:;
+      cur shift + @cur set
+    ] each
+  ];
+
+  @parserResult.@nodes adjustArray
+  @parserResult.@memory [
+    currentNode:;
+    currentNode.data.getTag AstNodeType.Code = [
+      AstNodeType.Code @currentNode.@data.get adjustArray
+    ] [
+      currentNode.data.getTag AstNodeType.List = [
+        AstNodeType.List @currentNode.@data.get adjustArray
+      ] [
+        currentNode.data.getTag AstNodeType.Object = [
+          AstNodeType.Object @currentNode.@data.get adjustArray
+        ] when
+      ] if
+    ] if
+
+    @currentNode move owner @multiParserResult.@memory.pushBack
+  ] each
+
+  multiParserResult.nodes.getSize
+  @parserResult.@nodes move @multiParserResult.@nodes.pushBack
+];
+
+

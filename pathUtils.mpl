@@ -21,6 +21,27 @@ extractClearPath: [
   ] call
 ];
 
+splitFullPath: [
+  splittedFullPath: makeStringView.split;
+  [
+    splittedFullPath.success [
+      lastPosition: -1;
+
+      splittedFullPath.chars.getSize [
+        i splittedFullPath.chars @ "\\" = i splittedFullPath.chars @ "/" = or [
+          i @lastPosition set
+        ] when
+      ] times
+
+      0 lastPosition 1 + splittedFullPath.chars makeSubRange assembleString
+      lastPosition 1 + splittedFullPath.chars.getSize splittedFullPath.chars makeSubRange assembleString
+    ] [
+      String String
+    ] if
+  ] call
+];
+
+
 simplifyPath: [
   splittedPath: makeStringView.split;
   [

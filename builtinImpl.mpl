@@ -5,16 +5,17 @@
 "processSubNodes" includeModule
 "defaultImpl" includeModule
 
+"module" includeModule
+
 declareBuiltin: [
   virtual declareBuiltinName:;
   virtual declareBuiltinBody:;
 
-  {processorResult: ProcessorResult Ref; processor: Processor Ref; indexOfNode: Int32; currentNode: CodeNode Ref; multiParserResult: MultiParserResult Cref;} () {} [
-    processorResult:;
+  {processor: Processor Ref; indexOfNode: Int32; currentNode: CodeNode Ref; } () {} [
     processor:;
     copy indexOfNode:;
     currentNode:;
-    multiParserResult:;
+    multiParserResult: processor.multiParserResult;
     failProc: @failProcForProcessor;
     @declareBuiltinBody ucall
   ] declareBuiltinName exportFunction
@@ -547,7 +548,7 @@ mplShiftBinaryOp: [
 
     compilable [
       codeIndex: VarCode varCode.data.get.index copy;
-      astNode: codeIndex @multiParserResult.@memory.at;
+      astNode: codeIndex @multiParserResult.@memory.at.get;
       [astNode.data.getTag AstNodeType.Code =] "Not a code!" assert
       currentNode.countOfUCall 1 + @currentNode.@countOfUCall set
       currentNode.countOfUCall 65535 > ["ucall limit exceeded" compilerError] when
@@ -717,8 +718,8 @@ mplBuiltinProcessAtList: [
         ] if
       ] [
         condition
-        VarCode varThen.data.get.index @multiParserResult.@memory.at
-        VarCode varElse.data.get.index @multiParserResult.@memory.at
+        VarCode varThen.data.get.index @multiParserResult.@memory.at.get
+        VarCode varElse.data.get.index @multiParserResult.@memory.at.get
         processIf
       ] if
     ] when
@@ -743,7 +744,7 @@ mplBuiltinProcessAtList: [
       condition staticityOfVar Weak > [
         value: VarCond varCond.data.get copy;
         codeIndex: value [VarCode varThen.data.get.index copy] [VarCode varElse.data.get.index copy] if;
-        astNode: codeIndex @multiParserResult.@memory.at;
+        astNode: codeIndex @multiParserResult.@memory.at.get;
         [astNode.data.getTag AstNodeType.Code =] "Not a code!" assert
         currentNode.countOfUCall 1 + @currentNode.@countOfUCall set
         currentNode.countOfUCall 65535 > ["ucall limit exceeded" compilerError] when
@@ -765,7 +766,7 @@ mplBuiltinProcessAtList: [
       varBody: body getVar;
       varBody.data.getTag VarCode = not ["body must be [CODE]" compilerError] when
     ] [
-      astNode: VarCode varBody.data.get.index @multiParserResult.@memory.at;
+      astNode: VarCode varBody.data.get.index @multiParserResult.@memory.at.get;
       astNode processLoop
     ]
   ) sequence
@@ -832,7 +833,7 @@ parseSignature: [
               ]
             ) sequence
           ] [
-            ("unknown option: " f.nameInfo processor.nameInfos.at.name) assembleString compilerError
+            ("unknown option: " f.nameInfo processor.nameInfos.at.get.name) assembleString compilerError
           ]
         ) case
       ] each
@@ -883,7 +884,7 @@ parseSignature: [
     ]
     [signature: parseSignature;]
     [
-      astNode: VarCode varBody.data.get.index @multiParserResult.@memory.at;
+      astNode: VarCode varBody.data.get.index @multiParserResult.@memory.at.get;
       index: signature astNode VarString varName.data.get makeStringView FALSE dynamic processExportFunction;
     ]
   ) sequence
@@ -1218,6 +1219,75 @@ parseSignature: [
   currentNode.nextLabelIsSchema ["duplicate schema specifier" compilerError] when
   TRUE @currentNode.@nextLabelIsSchema set
 ] "mplBuiltinSchema" @declareBuiltin ucall
+
+splitByDelimeter: [
+  stringView:delimeter:;;
+  splittedSV: stringView.split .chars;
+  result: String Array;
+  "" toString @result.pushBack
+  splittedSV [
+    value:;
+    value "." = [
+      "" toString @result.pushBack
+    ] [
+      value @result.last.cat
+    ] if
+  ] each
+  result
+];
+
+[
+  refToName: pop;
+  compilable [
+    refToName staticityOfVar Weak < ["name must be static string" compilerError] when
+    compilable [
+      varName: refToName getVar;
+      varName.data.getTag VarString = not ["name must be static string" compilerError] when
+      compilable [
+        string: VarString varName.data.get;
+        qualifiedPath: string makeStringView "." splitByDelimeter;
+        qualifiedPath fieldCount 2 < ["invalid qualified name" compilerError] when
+        compilable [
+          labelName: qualifiedPath.last copy;
+          @qualifiedPath.popBack
+          qualifiedPath: qualifiedPath assembleString;
+          [currentNode.moduleId2 0 >] "Module id is not set" assert
+          currentModule: currentNode.moduleId2 @processor.@modules2 @;
+          resolveResult: qualifiedPath currentModule.qualifiedPathToModuleIds.find;
+          resolveResult.success [
+          ] [
+            processedModules: @processor currentModule.path qualifiedPath resolveAndProcess;
+            processedModules fieldCount 0 = [
+              ("module " qualifiedPath " not found") assembleString compilerError
+            ] [
+               qualifiedPath @processedModules move @currentModule.@qualifiedPathToModuleIds.insert
+            ] if
+          ] if
+        ] when
+        #fr: string makeStringView @processor.@modules.find;
+        #fr.success [fr.value 0 < not] && [
+        #  ("duplicate declaration of module: " string) assembleString compilerError
+        #] [
+        #  fr.success [
+        #    indexOfNode @fr.@value set
+        #  ] [
+        #    string indexOfNode @processor.@modules.insert
+        #  ] if
+
+        #  currentNode.moduleName.getTextSize 0 = [
+        #    string @currentNode.@moduleName set
+        #  ] [
+        #    "duplicate named module" compilerError
+        #  ] if
+        #] if
+      ] when
+    ] when
+  ] when
+] "mplBuiltinUse" @declareBuiltin ucall
+
+
+
+
 
 [
   currentNode.parent 0 = not [
@@ -1590,7 +1660,7 @@ parseSignature: [
           pointeeVar: pointee getVar;
           pointeeVar.data.getTag VarStruct = not ["not a combined" compilerError] when
           compilable [
-            count VarStruct pointeeVar.data.get.get.fields.at.nameInfo processor.nameInfos.at.name makeVarString push
+            count VarStruct pointeeVar.data.get.get.fields.at.nameInfo processor.nameInfos.at.get.name makeVarString push
           ] when
         ] [
           var.data.getTag VarStruct = not ["not a combined" compilerError] when
@@ -1598,7 +1668,7 @@ parseSignature: [
             struct: VarStruct var.data.get.get;
             count 0 < [count struct.fields.getSize < not] || ["index is out of bounds" compilerError] when
             compilable [
-              count struct.fields.at.nameInfo processor.nameInfos.at.name makeVarString push
+              count struct.fields.at.nameInfo processor.nameInfos.at.get.name makeVarString push
             ] when
           ] when
         ] if

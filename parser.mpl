@@ -9,7 +9,7 @@ fillPositionInfo: [
   lastPosition.offset @astNode.@offset set
   lastPosition.line @astNode.@line set
   lastPosition.column @astNode.@column set
-  currentFileNumber @astNode.@fileNumber set
+  currentModuleId @astNode.@moduleId set
 ];
 
 makeLabelNode: [
@@ -1101,11 +1101,11 @@ parseNode: [
 ];
 
 {
-  currentFileNumber: Int32;
+  currentModuleId: Int32;
   text: StringView Cref;
   mainResult: ParserResult Ref;
 } () {convention: cdecl;} [
-  copy currentFileNumber:;
+  copy currentModuleId:;
   splittedString: .split;
   mainResult:;
   splittedString.success [

@@ -52,7 +52,7 @@ AstNode: [{
   column:    -1 dynamic;
   line:      -1 dynamic;
   offset:    -1 dynamic;
-  fileNumber: 0 dynamic;
+  moduleId: 0 dynamic;
   data: (
     Cond                 #EmptyNode:
     NamedRecursiveBranch #LabelNode:
@@ -104,11 +104,9 @@ ParserResult: [{
   INIT: []; DIE: []; # default life control, and ban uneffective copy, because object is too big
 }];
 
-ParserResults: [ParserResult Array];
-
 MultiParserResult: [{
   names: String Int32 HashTable;
-  memory: AstNode Array;
+  memory: AstNode Owner Array;
   nodes: IndexArray Array; # order of going is not defined before compiling
 
   INIT: []; DIE: []; # default life control, and ban uneffective copy, because object is too big

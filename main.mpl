@@ -6,9 +6,10 @@
 "processor" useModule
 "processorImpl" useModule
 "file" useModule
+"module" useModule
 
 printInfo: [
-  "USAGE: mplc.exe [options] <inputs>" print LF print
+  "USAGE: mplc.exe [options]" print LF print
   "OPTIONS:" print LF print
   "  -32bits                             Set 32-bit mode, default mode is 64-bit" print LF print
   "  -64bits                             Set 64-bit mode, default mode is 64-bit" print LF print
@@ -17,10 +18,12 @@ printInfo: [
   "  -auto_recursion                     Make all code block recursive-by-default" print LF print
   "  -call_trace                         Generate information about call trace" print LF print
   "  -dynalit                            Number literals are dynamic constants, which are not used in analysis; default mode is static literals" print LF print
+  "  -i <file>                           Input <file> for compilation" print LF print
+  "  -I <dir>                            Add include directory to search for modules, <dir> has to be w/ trailing slash" print LF print
   "  -linker_option                      Add linker option for LLVM" print LF print
   "  -logs                               Value of \"HAS_LOGS\" constant in code turn to TRUE" print LF print
   "  -ndebug                             Disable debug info; value of \"DEBUG\" constant in code turn to FALSE" print LF print
-  "  -o <file>                           Write output to <file>, default output file is \"mpl.ll\"" print LF print
+  "  -o <file>                           Write output to <file>" print LF print
   "  -pre_recursion_depth_limit <number> Set PRE recursion depth limit, default value is " print DEFAULT_PRE_RECURSION_DEPTH_LIMIT print LF print
   "  -recursion_depth_limit <number>     Set recursion depth limit, default value is " print DEFAULT_RECURSION_DEPTH_LIMIT print LF print
   "  -static_loop_length_limit <number>  Set static loop length limit, default value is " print DEFAULT_STATIC_LOOP_LENGTH_LIMIT print LF print
@@ -32,11 +35,11 @@ printInfo: [
 
 addToProcess: [
   fileText:;
-  copy fileNumber:;
+  copy moduleId:;
   fileName:;
   parserResult: ParserResult;
 
-  @parserResult fileText makeStringView fileNumber parseString
+  @parserResult fileText makeStringView moduleId parseString
 
   parserResult.success [
     @parserResult optimizeLabels
@@ -147,28 +150,23 @@ processIntegerOption: [
     OPT_RECURSION_DEPTH_LIMIT:     [7 dynamic];
     OPT_PRE_RECURSION_DEPTH_LIMIT: [8 dynamic];
     OPT_STATIC_LOOP_LENGTH_LIMIT:  [9 dynamic];
+    OPT_INPUT_FILE_NAME:           [10 dynamic];
+    OPT_INCLUDE_DIR:               [11 dynamic];
 
     nextOption: OPT_ANY;
 
     options: ProcessorOptions;
     hasVersion: FALSE dynamic;
-    parserResults: ParserResults;
     definitions: String;
     hasVersion: FALSE dynamic;
-    outputFileName: "mpl.ll" toString;
-
     forceArrayChecks: -1 dynamic;
     forceCallTrace: -1 dynamic;
-
-    "*definitions" toString @options.@fileNames.pushBack
 
     argc 1 = [
       FALSE @success set
     ] [
       argc [
         i 0 = [
-          addr: 0nx storageSize i 0ix cast 0nx cast * argv + Natx addressToReference;
-          addr makeStringViewByAddress extractClearPath @options.@mainPath set
         ] [
           addr: 0nx storageSize i 0ix cast 0nx cast * argv + Natx addressToReference;
           option: addr makeStringViewByAddress;
@@ -196,6 +194,8 @@ processIntegerOption: [
                     "-version"                   [TRUE                          !hasVersion]
                     "-linker_option"             [OPT_LINKER_OPTION             !nextOption]
                     "-o"                         [OPT_OUTPUT_FILE_NAME          !nextOption]
+                    "-i"                         [OPT_INPUT_FILE_NAME           !nextOption]
+                    "-I"                         [OPT_INCLUDE_DIR               !nextOption]
                     "-D"                         [OPT_DEFINITION                !nextOption]
                     "-array_checks"              [OPT_ARRAY_CHECK               !nextOption]
                     "-call_trace"                [OPT_CALL_TRACE                !nextOption]
@@ -203,17 +203,31 @@ processIntegerOption: [
                     "-recursion_depth_limit"     [OPT_RECURSION_DEPTH_LIMIT     !nextOption]
                     "-static_loop_length_limit"  [OPT_STATIC_LOOP_LENGTH_LIMIT  !nextOption]
                     [
-                      0 splittedOption.chars.at "-" = [
-                        "Invalid argument: " print option print LF print
-                        FALSE @success set
-                      ] [
-                        option toString @options.@fileNames.pushBack
-                      ] if
+                      "Invalid argument: " print option print LF print
+                      FALSE @success set
                     ]
                   ) case
                 ]
                 OPT_OUTPUT_FILE_NAME [
-                  option toString @outputFileName set
+                  options.outputFileName "" = [
+                    option toString @options.@outputFileName set
+                  ] [
+                    "Output file name already set: " print options.outputFileName print LF print
+                    FALSE @success set
+                  ] if
+                  OPT_ANY !nextOption
+                ]
+                OPT_INPUT_FILE_NAME [
+                  options.inputFileName "" = [
+                    option toString @options.@inputFileName set
+                  ] [
+                    "Input file name already set: " print options.inputFileName print LF print
+                    FALSE @success set
+                  ] if
+                  OPT_ANY !nextOption
+                ]
+                OPT_INCLUDE_DIR [
+                  option toString @options.@includePaths.pushBack
                   OPT_ANY !nextOption
                 ]
                 OPT_LINKER_OPTION [
@@ -272,24 +286,23 @@ processIntegerOption: [
       FALSE @success set
     ] when
 
-    outputFileName "" = [
-      "No output file" print LF print
-      FALSE @success set
-    ] when
-
-    options.fileNames.getSize 1 = [
-      hasVersion [
-        DEBUG [
-          ("MPL compiler version " COMPILER_SOURCE_VERSION " debug" LF) printList
-        ] [
-          ("MPL compiler version " COMPILER_SOURCE_VERSION LF) printList
-        ] if
+    hasVersion [
+      DEBUG [
+        ("MPL compiler version " COMPILER_SOURCE_VERSION " debug" LF) printList
       ] [
-        "No input files" print LF print
-        FALSE @success set
-        printInfo
+        ("MPL compiler version " COMPILER_SOURCE_VERSION LF) printList
       ] if
     ] [
+      options.outputFileName "" = [
+        "No output file" print LF print
+        FALSE @success set
+      ] when
+
+      options.inputFileName "" = [
+        "No input file" print LF print
+        FALSE @success set
+      ] when
+
       success not [
         printInfo
       ] [
@@ -312,39 +325,24 @@ processIntegerOption: [
           ("MPL compiler version " COMPILER_SOURCE_VERSION LF) printList
           "Input files ignored" print LF print
         ] [
-          options.fileNames.getSize [
-            filename: i options.fileNames @;
+          loadInputFileResult: options.inputFileName loadString;
+          loadInputFileResult.success [
+            ("Loaded " options.inputFileName) addLog
+            processor: Processor;
 
-            i 0 = [
-              filename i definitions addToProcess
-            ] [
-              loadStringResult: filename loadString;
-              loadStringResult.success [
-                ("Loaded string from " filename) addLog
-                ("HASH=" loadStringResult.data hash) addLog
-                filename i loadStringResult.data addToProcess
-              ] [
-                "Unable to load string:" print filename print LF print
-                FALSE @success set
-              ] if
-            ] if
-          ] times
+            @processor @options processorPrepare
+            indexOfNode: 0;
+            currentNode: indexOfNode @processor.@nodes.at.get;
 
-          success [
-            multiParserResult: MultiParserResult;
-            @parserResults @multiParserResult concatParserResults
-            ("trees concated" makeStringView) addLog
-            @multiParserResult optimizeNames
-            ("names optimized" makeStringView) addLog
+            @processor "" toString "DEFINITIONS" toString definitions processModule drop
+            @processor options.inputFileName splitFullPath loadInputFileResult.data processModule drop
 
-            ("filenames:" makeStringView) addLog
-            options.fileNames [fileName:; (fileName) addLog] each
+            @processor processorFinalize
 
-            processorResult: ProcessorResult;
-            multiParserResult options 0 @processorResult process
+            processorResult: @processor.@processorResult;
             processorResult.success [
-              outputFileName @processorResult.@program saveString [
-                ("program written to " outputFileName) addLog
+              options.outputFileName @processorResult.@program saveString [
+                ("program written to " options.outputFileName) addLog
               ] [
                 ("failed to save program" LF) printList
                 FALSE @success set
@@ -360,7 +358,7 @@ processIntegerOption: [
                 ] [
                   current.position.getSize [
                     nodePosition: i current.position @;
-                    (nodePosition.fileNumber options.fileNames.at "(" nodePosition.line  ","  nodePosition.column "): ") printList
+                    (nodePosition.moduleId moduleFullPath "(" nodePosition.line  ","  nodePosition.column "): ") printList
 
                     i 0 = [
                       ("error, [" nodePosition.token "], " current.message LF) printList
@@ -373,7 +371,10 @@ processIntegerOption: [
                 FALSE @success set
               ] times
             ] when
-          ] when
+          ] [
+            "Unable to load " print options.inputFileName print LF print
+            FALSE @success set
+          ] if
         ] if
       ] if
     ] if

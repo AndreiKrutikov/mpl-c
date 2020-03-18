@@ -7,7 +7,7 @@ CompilerPositionInfo: [{
   column:     -1 dynamic;
   line:       -1 dynamic;
   offset:     -1 dynamic;
-  fileNumber: 0 dynamic;
+  moduleId:   -1 dynamic;
   token:      String;
 }];
 
@@ -18,8 +18,9 @@ DEFAULT_RECURSION_DEPTH_LIMIT: [256];
 DEFAULT_PRE_RECURSION_DEPTH_LIMIT: [64];
 
 ProcessorOptions: [{
-  mainPath:               String;
-  fileNames:              StringArray;
+  inputFileName:          String;
+  outputFileName:         String;
+  includePaths:           String Array;
   pointerSize:            64nx dynamic;
   staticLiterals:         TRUE dynamic;
   debug:                  TRUE dynamic;
@@ -231,6 +232,7 @@ CodeNode: [{
   refToVar:           RefToVar; #refToVar of function with compiled node
   varNameInfo:        -1 dynamic; #variable name of imported function
   moduleId:           -1 dynamic;
+  moduleId2:          -1 dynamic;
   indexArrayAddress:  0nx dynamic;
   matchingInfoIndex:  -1 dynamic;
   exportDepth:        0 dynamic;
@@ -255,16 +257,31 @@ MatchingNode: [{
   size: Int32;
 }];
 
+Module: [{
+  path: String;
+  name: String;
+  debugInfoId: -1 dynamic;
+  qualifiedPathToModuleIds: String Int32 Array HashTable;
+  beingProcessed: TRUE dynamic;
+}];
+
 Processor: [{
   options: ProcessorOptions;
+  processorResult: ProcessorResult;
+
+
+  multiParserResult: MultiParserResult;
+
 
   nodes:               CodeNode Owner Array;
   matchingNodes:       Natx MatchingNode HashTable;
   recursiveNodesStack: Int32 Array;
-  nameInfos:           NameInfo Array;
+  nameInfos:           NameInfo Owner Array;
   modules:             String Int32 HashTable; # -1 no module, or Id of codeNode
-  nameToId:            String Int32 HashTable; # id of nameInfo from parser
+  modules2:            Module Array;
+  moduleContent2ModuleId: String Int32 HashTable;
 
+  currentlyProcessedModule:    -1 dynamic;
   emptyNameInfo:               -1 dynamic;
   callNameInfo:                -1 dynamic;
   preNameInfo:                 -1 dynamic;
@@ -309,7 +326,6 @@ Processor: [{
     unit:             -1 dynamic;
     unitStringNumber: -1 dynamic;
     cuStringNumber:   -1 dynamic;
-    fileNameIds:      Int32 Array;
     globals:          Int32 Array;
   };
 
@@ -327,6 +343,8 @@ Processor: [{
   nodeCount:         0 dynamic;
   deletedNodeCount:  0 dynamic;
   deletedVarCount:   0 dynamic;
+
+  cachedErrorInfoSize: 0 dynamic;
 
   usedFloatBuiltins: FALSE dynamic;
 
