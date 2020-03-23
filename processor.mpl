@@ -263,6 +263,7 @@ Module: [{
   debugInfoId: -1 dynamic;
   qualifiedPathToModuleIds: String Int32 Array HashTable;
   beingProcessed: TRUE dynamic;
+  topNodeIndex: -1 dynamic;
 }];
 
 Processor: [{

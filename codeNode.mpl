@@ -59,7 +59,7 @@ addNameInfoWith: [
         nameWithOverload @currentNode.@labelNames.pushBack
       ] [
         addNameCase NameCaseFromModule = [
-          nameWithOverload @currentNode.@fromModuleNames.pushBack
+          nameWithOverload @currentNode.@labelNames.pushBack
         ] [
           addNameCase NameCaseCapture = [addNameCase NameCaseSelfObjectCapture =] || [addNameCase NameCaseClosureObjectCapture =] || [
             nameWithOverload @currentNode.@captureNames.pushBack
@@ -952,10 +952,10 @@ createNamedVariable: [
       currentNode.nextLabelIsVirtual not [refToVar isVirtual not] && [refToVar isGlobal] &&
     ];
 
-    var.temporary [refToVar isGlobalLabel] &&  [
-      refToVar makeVarTreeDirty
-      Dirty @staticity set
-    ] when
+    #var.temporary [refToVar isGlobalLabel] &&  [
+    #  refToVar makeVarTreeDirty
+    #  Dirty @staticity set
+    #] when
 
     var.temporary currentNode.nextLabelIsSchema not and [
       staticity @var.@staticity set
@@ -3753,9 +3753,9 @@ nodeHasCode: [
   #add to match table
   indexArray storageAddress indexOfNode addMatchingNode
 
-  currentNode.parent 0 = [indexOfNode 1 >] && [
-    1 dynamic TRUE dynamic processUseModule #definitions
-  ] when
+  #currentNode.parent 0 = [indexOfNode 1 >] && [
+  #  1 dynamic TRUE dynamic processUseModule #definitions
+  #] when
 
   recursionTries: 0 dynamic;
   [

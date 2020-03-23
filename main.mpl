@@ -133,6 +133,10 @@ processIntegerOption: [
   ] if
 ];
 
+{} 0 {convention: cdecl;} [
+  10
+] "test123" exportFunction
+
 {argc: 0; argv: 0nx;} 0 {convention: cdecl;} [
   ("Start mplc compiler") addLog
   [

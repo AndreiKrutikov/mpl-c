@@ -305,7 +305,7 @@ addDerivedTypeInfo: [
 ];
 
 addModuleDebugInfo: [
-  compileOnce
+  
   fullPath:;
   index: processor.debugInfo.lastId copy;
   processor.debugInfo.lastId 1 + @processor.@debugInfo.@lastId set

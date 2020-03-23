@@ -5,7 +5,18 @@
 "processSubNodes" includeModule
 "defaultImpl" includeModule
 
-"module" includeModule
+
+"parser" useModule
+"pathUtils" useModule
+"file" useModule
+"astOptimizers" useModule
+"processor" useModule
+"Owner" useModule
+"variable" useModule
+"String" useModule
+
+
+"module" useModule
 
 declareBuiltin: [
   virtual declareBuiltinName:;
@@ -867,27 +878,48 @@ parseSignature: [
   result
 ];
 
-[
+importImpl: [
+  dropBody:;
   (
     [compilable]
-    [currentNode.parent 0 = not ["export must be global" compilerError] when]
+    [currentNode.parent 0 = not ["import must be global" compilerError] when]
     [refToName: pop;]
     [refToName staticityOfVar Weak < ["function name must be static string" compilerError] when]
     [
       varName: refToName getVar;
       varName.data.getTag VarString = not ["function name must be static string" compilerError] when
     ]
-    [refToBody: pop;]
-    [
-      varBody: refToBody getVar;
-      varBody.data.getTag VarCode = not ["must be a code" compilerError] when
-    ]
+    [dropBody [refToBody: pop;] when]
     [signature: parseSignature;]
-    [
-      astNode: VarCode varBody.data.get.index @multiParserResult.@memory.at.get;
-      index: signature astNode VarString varName.data.get makeStringView FALSE dynamic processExportFunction;
-    ]
+    [index: signature VarString varName.data.get makeStringView FALSE dynamic processImportFunction;]
   ) sequence
+];
+
+[
+  currentNode.moduleId2 1 = not [
+    TRUE importImpl
+  ] [
+    (
+      [compilable]
+      [currentNode.parent 0 = not ["export must be global" compilerError] when]
+      [refToName: pop;]
+      [refToName staticityOfVar Weak < ["function name must be static string" compilerError] when]
+      [
+        varName: refToName getVar;
+        varName.data.getTag VarString = not ["function name must be static string" compilerError] when
+      ]
+      [refToBody: pop;]
+      [
+        varBody: refToBody getVar;
+        varBody.data.getTag VarCode = not ["must be a code" compilerError] when
+      ]
+      [signature: parseSignature;]
+      [
+        astNode: VarCode varBody.data.get.index @multiParserResult.@memory.at.get;
+        index: signature astNode VarString varName.data.get makeStringView FALSE dynamic processExportFunction;
+      ]
+    ) sequence
+  ] if
 ] "mplBuiltinExportFunction" @declareBuiltin ucall
 
 [
@@ -935,18 +967,7 @@ parseSignature: [
 ] "mplBuiltinExportVariable" @declareBuiltin ucall
 
 [
-  (
-    [compilable]
-    [currentNode.parent 0 = not ["import must be global" compilerError] when]
-    [refToName: pop;]
-    [refToName staticityOfVar Weak < ["function name must be static string" compilerError] when]
-    [
-      varName: refToName getVar;
-      varName.data.getTag VarString = not ["function name must be static string" compilerError] when
-    ]
-    [signature: parseSignature;]
-    [index: signature VarString varName.data.get makeStringView FALSE dynamic processImportFunction;]
-  ) sequence
+  FALSE importImpl
 ] "mplBuiltinImportFunction" @declareBuiltin ucall
 
 [
@@ -1245,41 +1266,48 @@ splitByDelimeter: [
       varName.data.getTag VarString = not ["name must be static string" compilerError] when
       compilable [
         string: VarString varName.data.get;
-        qualifiedPath: string makeStringView "." splitByDelimeter;
-        qualifiedPath fieldCount 2 < ["invalid qualified name" compilerError] when
+        splittedQualifiedPath: string makeStringView "." splitByDelimeter;
+        splittedQualifiedPath fieldCount 2 < ["invalid qualified name" compilerError] when
         compilable [
-          labelName: qualifiedPath.last copy;
-          @qualifiedPath.popBack
-          qualifiedPath: qualifiedPath assembleString;
+          labelName: splittedQualifiedPath.last copy;
+          @splittedQualifiedPath.popBack
+          qualifiedPath: splittedQualifiedPath assembleString;
           [currentNode.moduleId2 0 >] "Module id is not set" assert
           currentModule: currentNode.moduleId2 @processor.@modules2 @;
           resolveResult: qualifiedPath currentModule.qualifiedPathToModuleIds.find;
-          resolveResult.success [
-          ] [
-            processedModules: @processor currentModule.path qualifiedPath resolveAndProcess;
+          resolveResult.success not [
+            processedModules: @processor currentModule.path splittedQualifiedPath resolveAndProcess;
             processedModules fieldCount 0 = [
               ("module " qualifiedPath " not found") assembleString compilerError
             ] [
-               qualifiedPath @processedModules move @currentModule.@qualifiedPathToModuleIds.insert
+              qualifiedPath @processedModules move @currentModule.@qualifiedPathToModuleIds.insert
+              qualifiedPath currentModule.qualifiedPathToModuleIds.find !resolveResult
             ] if
-          ] if
-        ] when
-        #fr: string makeStringView @processor.@modules.find;
-        #fr.success [fr.value 0 < not] && [
-        #  ("duplicate declaration of module: " string) assembleString compilerError
-        #] [
-        #  fr.success [
-        #    indexOfNode @fr.@value set
-        #  ] [
-        #    string indexOfNode @processor.@modules.insert
-        #  ] if
+          ] when
 
-        #  currentNode.moduleName.getTextSize 0 = [
-        #    string @currentNode.@moduleName set
-        #  ] [
-        #    "duplicate named module" compilerError
-        #  ] if
-        #] if
+          compilable [
+            nameIdFindResult: labelName processor.multiParserResult.names.find;
+            nameIdFindResult.success not [
+              ("name " labelName " not found") assembleString compilerError
+            ] when
+
+            compilable [
+              labelNameId: nameIdFindResult.value;
+              modules: resolveResult.value;
+
+              modules [
+                moduleId:;
+                moduleNode: moduleId processor.modules2.at.topNodeIndex processor.nodes.at.get;
+                moduleNode.labelNames [
+                  moduleLabel:;
+                  moduleLabel.nameInfo labelNameId = [
+                    moduleLabel.nameInfo moduleLabel.refToVar derefAndPush pop createNamedVariable
+                  ] when
+                ] each
+              ] each
+            ] when
+          ] when
+        ] when
       ] when
     ] when
   ] when

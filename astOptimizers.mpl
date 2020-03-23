@@ -211,20 +211,20 @@ concatParserResults: [
     current:;
     @current.@nodes adjustArray
     @current.@memory [
-      currentNode:;
-      currentNode.data.getTag AstNodeType.Code = [
-        AstNodeType.Code @currentNode.@data.get adjustArray
+      currentNode_:;
+      currentNode_.data.getTag AstNodeType.Code = [
+        AstNodeType.Code @currentNode_.@data.get adjustArray
       ] [
-        currentNode.data.getTag AstNodeType.List = [
-          AstNodeType.List @currentNode.@data.get adjustArray
+        currentNode_.data.getTag AstNodeType.List = [
+          AstNodeType.List @currentNode_.@data.get adjustArray
         ] [
-          currentNode.data.getTag AstNodeType.Object = [
-            AstNodeType.Object @currentNode.@data.get adjustArray
+          currentNode_.data.getTag AstNodeType.Object = [
+            AstNodeType.Object @currentNode_.@data.get adjustArray
           ] when
         ] if
       ] if
 
-      @currentNode move @mresult.@memory.pushBack
+      @currentNode_ move @mresult.@memory.pushBack
     ] each
 
     @current.@nodes move @mresult.@nodes.pushBack
@@ -249,20 +249,20 @@ appendParserResult: [
 
   @parserResult.@nodes adjustArray
   @parserResult.@memory [
-    currentNode:;
-    currentNode.data.getTag AstNodeType.Code = [
-      AstNodeType.Code @currentNode.@data.get adjustArray
+    currentNode_:;
+    currentNode_.data.getTag AstNodeType.Code = [
+      AstNodeType.Code @currentNode_.@data.get adjustArray
     ] [
-      currentNode.data.getTag AstNodeType.List = [
-        AstNodeType.List @currentNode.@data.get adjustArray
+      currentNode_.data.getTag AstNodeType.List = [
+        AstNodeType.List @currentNode_.@data.get adjustArray
       ] [
-        currentNode.data.getTag AstNodeType.Object = [
-          AstNodeType.Object @currentNode.@data.get adjustArray
+        currentNode_.data.getTag AstNodeType.Object = [
+          AstNodeType.Object @currentNode_.@data.get adjustArray
         ] when
       ] if
     ] if
 
-    @currentNode move owner @multiParserResult.@memory.pushBack
+    @currentNode_ move owner @multiParserResult.@memory.pushBack
   ] each
 
   multiParserResult.nodes.getSize
